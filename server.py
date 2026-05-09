@@ -340,19 +340,30 @@ def admin_user_chats(username):
             rows = cur.fetchall()
     return jsonify([{"user": r["user_message"], "ai": r["ai_message"], "time": str(r["timestamp"])} for r in rows])
 
-@app.route('/admin/send_message', methods=['POST'])
-def admin_send_message():
-    if not session.get('is_admin'):
-        return jsonify({"success": False})
-    data = request.json
-    target = data.get('username')
-    msg = data.get('message', '').strip()
-    if not target or not msg:
-        return jsonify({"success": False})
+@app.route('/status_check')
+def status_check():
+    if 'username' not in session:
+        return jsonify({"action": "logout"})
     with get_db() as conn:
         with conn.cursor() as cur:
-            cur.execute("UPDATE users SET admin_message = %s WHERE username = %s", (msg, target))
-            conn.commit()
+            cur.execute("SELECT is_banned, admin_message FROM users WHERE username = %s", (session['username'],))
+            user = cur.fetchone()
+            if not user or user['is_banned']:
+                session.clear()
+                return jsonify({"action": "banned"})
+            
+            # Mesaj varsa gönderiyoruz ama BURADA SİLMİYORUZ
+            msg = user['admin_message'] or ''
+            return jsonify({"action": "message" if msg else "ok", "message": msg})
+
+
+@app.route('/clear_admin_message', methods=['POST'])
+def clear_admin_message():
+    if 'username' in session:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("UPDATE users SET admin_message = '' WHERE username = %s", (session['username'],))
+                conn.commit()
     return jsonify({"success": True})
 
 @app.route('/admin/ban', methods=['POST'])
