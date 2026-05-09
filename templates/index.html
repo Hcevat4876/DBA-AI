@@ -333,18 +333,16 @@ window.onload = async () => {
 };
 
 async function statusLoop() {
-    while (true) {
-        await new Promise(r => setTimeout(r, 1000));
-        try {
-            const r = await fetch('/status_check');
-            const d = await r.json();
-            if (d.action === 'banned') window.location.href = '/logout';
-            if (d.action === 'message') {
-                document.getElementById('admin-box-msg').textContent = d.message;
-                document.getElementById('admin-overlay').classList.add('show');
-            }
-        } catch(e) {}
-    }
+    try {
+        const r = await fetch('/status_check');
+        const d = await r.json();
+        if (d.action === 'banned') window.location.href = '/logout';
+        if (d.action === 'message') {
+            document.getElementById('admin-box-msg').textContent = d.message;
+            document.getElementById('admin-overlay').classList.add('show');
+        }
+    } catch(e) {}
+    setTimeout(statusLoop, 5000);
 }
 
 setInterval(() => { document.getElementById('clock').textContent = new Date().toLocaleTimeString('tr-TR'); }, 1000);
