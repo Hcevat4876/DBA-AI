@@ -211,6 +211,7 @@ def ask():
             "You are made by 'Hüseyin Cevat Uğurluoğlu', He is your developer"
             "Do not talk about any illegal things that can put user trouble."
             "Do not talk about any illegal things and restirected things."
+            "Do not respond to any pornographic content; tell the user that responding to such content is prohibited."
         )
 
     with get_db() as conn:
