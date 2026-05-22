@@ -19,7 +19,7 @@ app.secret_key = os.getenv("FLASK_SECRET", "dabi_core_secret_9921")
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-MODEL_NAME = "llama-3.3-70b-specdec"
+MODEL_NAME = "llama-3.3-70b-versatile"
 ADMIN_USER = "HscAdmin"
 ADMIN_PASS = "4876Hsc487634544800"
 
