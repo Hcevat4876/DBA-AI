@@ -495,28 +495,20 @@ function togglePreview(btn) {
 
 function scrollBottom() { const c = document.getElementById('chat-container'); c.scrollTop = c.scrollHeight; }
 
-function wipeMemory() {
-    // Android'in engellediği confirm yerine kendi siberpunk kutumuzu açıyoruz
-    document.getElementById('admin-box-msg').innerHTML = `
-        Tüm geçmişiniz silinecek. Onaylıyor musunuz?<br><br>
-        <button onclick="wipeMemoryOnayla()" style="padding:5px 15px; background:var(--neon-pink); color:#000; font-weight:bold; border:none; cursor:pointer; font-family:'Orbitron'; font-size:11px; margin-right:10px;">EVET, SİL</button>
-        <button onclick="document.getElementById('admin-overlay').classList.remove('show')" style="padding:5px 15px; background:transparent; border:1px solid #fff; color:#fff; cursor:pointer; font-family:'Orbitron'; font-size:11px;">İPTAL</button>
-    `;
-    
-    // Kutuyu ekranda göster
-    document.getElementById('admin-overlay').classList.add('show');
-}
-
-// Kullanıcı "EVET, SİL" butonuna bastığında çalışacak asıl fonksiyon
-async function wipeMemoryOnayla() {
-    document.getElementById('admin-overlay').classList.remove('show');
+// Kullanıcı sol menüden "Mesajları Sil" butonuna bastığı an doğrudan burası tetiklenir
+async function wipeMemory() {
     try {
+        // 1. Hiçbir şey sormadan, onay kutusu göstermeden direkt sunucuya silme emrini gönderiyoruz
         await fetch('/reset', { method: 'POST' });
-        location.reload();
+        
+        // 2. Android'in çık-gir yapmadan anında ekranı temizlemesi için cache kıran linkle sayfayı yeniliyoruz
+        window.location.href = window.location.origin + window.location.pathname + '?cache_bust=' + Date.now();
+        
     } catch(e) {
         console.error("Silme hatası:", e);
     }
 }
+    
 inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
 
 async function handleFile(el) {
