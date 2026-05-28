@@ -430,7 +430,7 @@ def download_apk():
     root_dir = os.path.dirname(os.path.abspath(__file__))
     
     # Bilgisayarınızda çalışan orijinal dosya adı
-    apk_filename = 'unsigned-signed.apk' 
+    apk_filename = 'dabiapp.apk' 
     
     return send_from_directory(
         root_dir, 
