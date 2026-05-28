@@ -425,31 +425,19 @@ def favicon():
     return send_from_directory(app.root_path, 'favicon.png', mimetype='image/png')
 
 
-import os
-from flask import send_from_directory, current_app
-
-@app.route('/app-release.apk')
+@app.route('/indir-dabi.apk')
 def download_apk():
-    if 'username' not in session:
-        return redirect(url_for('login'))
-        
-    try:
-        # server.py'ın bulunduğu klasörün tam yolunu alır
-        base_dir = os.path.abspath(os.path.dirname(__file__))
-        apk_path = os.path.join(base_dir, 'app-release.apk')
-        
-        # Dosya gerçekten orada var mı kontrol edelim
-        if not os.path.exists(apk_path):
-            return f"Hata: 'app-release.apk' dosyası sunucuda bu konumda bulunamadı: {apk_path}", 404
-
-        return send_file(
-            apk_path,
-            mimetype='application/vnd.android.package-archive',
-            as_attachment=True,
-            download_name='app-release.apk'
-        )
-    except Exception as e:
-        return f"Sunucu Hatası: {str(e)}", 500
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Bilgisayarınızda çalışan orijinal dosya adı
+    apk_filename = 'unsigned-signed.apk' 
+    
+    return send_from_directory(
+        root_dir, 
+        apk_filename, 
+        as_attachment=True,
+        mimetype='application/vnd.android.package-archive'
+    )
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
