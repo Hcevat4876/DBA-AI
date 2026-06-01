@@ -25,8 +25,8 @@
 :root {
     --neon-blue: #00f2ff;
     --neon-pink: #ff00c1;
-    --bg: #0a0a12;
-    --sidebar-bg: #0d0d18;
+    --bg: #141423;
+    --sidebar-bg: #1a1a2e;
     --border: rgba(255,255,255,0.07);
 }
 ::-webkit-scrollbar { width: 3px; }
@@ -301,7 +301,7 @@ window.onpageshow = function(event) {
     }
 };
 
-// Ekstra güvenlik: Session yoksa login'e at
+
 async function checkAuth() {
     try {
         const res = await fetch('/status_check');
@@ -315,7 +315,7 @@ async function checkAuth() {
 }
 checkAuth();
     
-// Toggle Sidebar for Mobile
+
 function toggleSidebar() {
     document.getElementById('sidebar').classList.toggle('active');
     document.getElementById('sidebarOverlay').classList.toggle('active');
