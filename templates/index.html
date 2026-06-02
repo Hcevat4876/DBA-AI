@@ -380,31 +380,67 @@ function showChat() {
 }
 
 function renderContent(text) {
+    // 1. Markdown ayarları
     marked.setOptions({
         highlight: function(code, lang) { return hljs.highlightAuto(code).value; },
         breaks: true
     });
-    const rawHtml = marked.parse(text);
+
+    // 2. Markdown'ı HTML'e çevir
+    let rawHtml = marked.parse(text);
+    
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = rawHtml;
+
+    // 3. Kod bloklarını (pre) bul ve güvenli container'lara yerleştir
     tempDiv.querySelectorAll('pre').forEach(pre => {
         const codeEl = pre.querySelector('code');
         const lang = codeEl ? (codeEl.className.replace('language-', '') || 'code') : 'code';
+        
+        // Orijinal ham kodu (escaped olmamış temiz hali) iframe için alıyoruz
+        const rawCode = codeEl ? codeEl.textContent : pre.textContent;
+
         const container = document.createElement('div');
         container.className = 'code-container';
+        
         container.innerHTML = `
             <div class="code-header">
                 <span>${lang.toUpperCase()}</span>
                 <div class="code-actions">
                     <span class="code-btn" onclick="copyCode(this)"><i class="fas fa-copy"></i> Copy</span>
-                    ${(lang === 'html' || lang === 'xml') ? `<span class="code-btn" onclick="togglePreview(this)"><i class="fas fa-eye"></i> Preview</span>` : ''}
+                    ${(lang === 'html' || lang === 'xml' || lang === 'css') ? `<span class="code-btn" onclick="togglePreview(this)"><i class="fas fa-eye"></i> Preview</span>` : ''}
                 </div>
             </div>
             <pre>${pre.innerHTML}</pre>
-            <iframe class="preview-box"></iframe>`;
+            <iframe class="preview-box" sandbox="allow-scripts"></iframe>`;
+
+        // CSS/HTML kodunun ana sayfaya sızmasını önlemek için ham kodu burada gizli saklıyoruz
+        const hiddenData = document.createElement('script');
+        hiddenData.type = 'text/plain';
+        hiddenData.className = 'raw-code-holder';
+        hiddenData.textContent = rawCode;
+        container.appendChild(hiddenData);
+
         pre.replaceWith(container);
     });
+
     return tempDiv.innerHTML;
+}
+
+function togglePreview(btn) {
+    const container = btn.closest('.code-container');
+    const iframe = container.querySelector('.preview-box');
+    const rawCode = container.querySelector('.raw-code-holder').textContent; // Gizlenen temiz kodu çağırıyoruz
+    
+    if (iframe.style.display === 'block') {
+        iframe.style.display = 'none';
+        btn.innerHTML = '<i class="fas fa-eye"></i> Preview';
+    } else {
+        iframe.style.display = 'block';
+        // Kod artık tamamen izole bir iframe içinde açılır, dışarıdaki elementleri etkileyemez.
+        iframe.srcdoc = rawCode; 
+        btn.innerHTML = '<i class="fas fa-eye-slash"></i> Close';
+    }
 }
 
 async function appendMsg(sender, text, typeEffect = true) {
@@ -479,19 +515,7 @@ function copyCode(btn) {
     setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i> Copy'; }, 2000);
 }
 
-function togglePreview(btn) {
-    const container = btn.closest('.code-container');
-    const iframe = container.querySelector('.preview-box');
-    const code = container.querySelector('code').innerText;
-    if (iframe.style.display === 'block') {
-        iframe.style.display = 'none';
-        btn.innerHTML = '<i class="fas fa-eye"></i> Preview';
-    } else {
-        iframe.style.display = 'block';
-        iframe.srcdoc = code;
-        btn.innerHTML = '<i class="fas fa-eye-slash"></i> Close';
-    }
-}
+
 
 function scrollBottom() { const c = document.getElementById('chat-container'); c.scrollTop = c.scrollHeight; }
 
