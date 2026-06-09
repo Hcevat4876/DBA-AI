@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 import logging
 
+# Log seviyesini sadece hataları gösterecek şekilde ayarla
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
@@ -26,7 +27,7 @@ ADMIN_USER = "HscAdmin"
 ADMIN_PASS = "4876Hsc487634544800"
 
 
-# --- DATABASE ---
+# --- DATABASE CONNECTION ---
 def get_db():
     return psycopg2.connect(os.environ["DATABASE_URL"], cursor_factory=psycopg2.extras.RealDictCursor)
 
@@ -58,7 +59,7 @@ def init_db():
                     timestamp TIMESTAMP DEFAULT NOW()
                 )
             """)
-            # Auto-migration: add missing columns
+            # Eksik sütunları otomatik ekleme (Migration)
             for col, col_def in [
                 ("is_banned", "BOOLEAN DEFAULT FALSE"),
                 ("last_ip", "TEXT DEFAULT ''"),
@@ -70,7 +71,7 @@ def init_db():
                     EXCEPTION WHEN duplicate_column THEN NULL;
                     END $$;
                 """)
-            # Ensure admin exists
+            # Admin kullanıcısının varlığını garanti et
             cur.execute("SELECT username FROM users WHERE username = %s", (ADMIN_USER,))
             if not cur.fetchone():
                 cur.execute(
@@ -102,7 +103,7 @@ def login():
         
         with get_db() as conn:
             with conn.cursor() as cur:
-                # Check IP ban
+                # IP engeli kontrolü
                 cur.execute("SELECT ip_address FROM banned_ips WHERE ip_address = %s", (ip,))
                 if cur.fetchone():
                     return render_template('login.html', error="ERR_403: Bu IP adresi sistem tarafından engellendi.")
@@ -157,12 +158,12 @@ def get_history():
             )
             rows = cur.fetchall()
     
-    # Geçmişi yüklerken XSS ve Stil sızmalarına karşı temizliyoruz
+    # Kullanıcı mesajını temizliyoruz ancak yapay zeka mesajını (kod blokları/markdown barındırdığı için) orijinal haliyle bırakıyoruz.
     cleaned_history = []
     for r in rows:
         cleaned_history.append({
             "user": bleach.clean(r["user_message"], tags=[], strip=False),
-            "ai": bleach.clean(r["ai_message"], tags=[], strip=False)
+            "ai": r["ai_message"]  # Frontend'deki render kutusunun çalışması için raw bırakıldı
         })
     return jsonify(cleaned_history)
 
@@ -247,18 +248,20 @@ def ask():
         if resp.status_code == 200:
             ai_res = resp.json()['choices'][0]['message']['content'].strip()
             
-            # Sunucu Seviyesinde Güvenlik Filtresi (HTML Etiketleri Tamamen Engellenir)
-            safe_ai_res = bleach.clean(ai_res, tags=[], attributes={}, strip=False)
+            # GÜVENLİK GÜNCELLEMESİ:
+            # Kullanıcı girdilerini temiz tutmaya devam ediyoruz (SQL/HTML Enjeksiyonunu önlemek için).
+            # Fakat Yapay Zeka (AI) çıktısını bozmamak için bleach filtrelemesinden GEÇİRMİYORUZ.
+            # Frontend, render ederken iframe sandbox yapısını kullanarak güvenliği istemci tarafında sağlayacak.
             safe_user_query = bleach.clean(user_query, tags=[], attributes={}, strip=False)
 
             with get_db() as conn:
                 with conn.cursor() as cur:
                     cur.execute(
                         "INSERT INTO chat_history (username, user_message, ai_message) VALUES (%s, %s, %s)",
-                        (username, safe_user_query, safe_ai_res)
+                        (username, safe_user_query, ai_res)
                     )
                     conn.commit()
-            return jsonify({"response": safe_ai_res})
+            return jsonify({"response": ai_res})
         elif resp.status_code == 429:
             return jsonify({"response": "DABI: Sistem aşırı yüklendi. 10 saniye bekleyin."})
         else:
