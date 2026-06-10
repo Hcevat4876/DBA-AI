@@ -372,27 +372,23 @@ function escapeHTML(str) {
 function renderContent(text) {
     const codeBlocks = [];
     
-    // Markdown formatındaki kod bloklarını yakalayan regex (örn: ```html ... ```)
-    const codeBlockRegex = /```(html|css|js|javascript|python|bash|sh|json|sql|cpp|c)?\s*\n([\s\S]*?)\n```/g;
+    // Markdown formatındaki kod bloklarını esnek ve güvenli bir şekilde yakalayan regex
+    const codeBlockRegex = /```(html|css|js|javascript|python|bash|sh|json|sql|cpp|c|xml)?\s*([\s\S]*?)```/g;
     
-    // Önce kod bloklarını güvenli bir şekilde yedekleyip yerlerine geçici anahtarlar yerleştiriyoruz.
-    // Bu sayede normal metinler arasındaki sahte HTML etiketleri tamamen engellenirken kod blokları korunur.
+    // Kod bloklarını marked.js dönüştürmeden önce güvenli geçici kelimelerle yedekliyoruz
     let processedText = text.replace(codeBlockRegex, (match, lang, code) => {
-        const placeholder = `__CODE_BLOCK_PLACEHOLDER_${codeBlocks.length}__`;
+        const placeholder = `DABICODEBLOCKPLACEHOLDER${codeBlocks.length}`;
         codeBlocks.push({ lang: lang || 'code', code: code });
         return placeholder;
     });
     
-    // Kod blokları dışındaki tüm alanı escapeHTML ile süzüyoruz. 
-    // Böylece yapay zekanın ürettiği düz metindeki hiçbir HTML çalışamaz!
+    // Kod dışındaki alanları temizleyip markdown derleyicisinden geçiriyoruz
     processedText = escapeHTML(processedText);
-    
-    // Düz metinleri güvenle markdown formatına dönüştürüyoruz
     let htmlOutput = typeof marked !== 'undefined' ? marked.parse(processedText) : processedText;
     
-    // Şimdi yedeklediğimiz kod bloklarını şık kod kutuları ve önizleme iframe'leri ile geri yerleştiriyoruz
+    // Yedeklenen kod bloklarını şık arayüz kutularıyla geri yerleştiriyoruz
     codeBlocks.forEach((block, idx) => {
-        const placeholder = `__CODE_BLOCK_PLACEHOLDER_${idx}__`;
+        const placeholder = `DABICODEBLOCKPLACEHOLDER${idx}`;
         const langLower = block.lang.toLowerCase();
         const isHTML = ['html', 'css', 'js', 'javascript'].includes(langLower);
         const escapedCode = escapeHTML(block.code.trim());
@@ -408,18 +404,11 @@ function renderContent(text) {
                 </div>
                 <pre style="padding: 14px; overflow-x: auto; margin: 0; background: #1a1b26;"><code class="language-${block.lang === 'js' ? 'javascript' : block.lang}">${escapedCode}</code></pre>
                 <div class="raw-code-holder" style="display:none;">${escapedCode}</div>
-                <!-- sandbox="allow-scripts" ile iframe tamamen izole edilerek ana sitenin güvenliği %100 korunur -->
                 <iframe class="preview-box" sandbox="allow-scripts" style="background: white; width: 100%; height: 350px; border: none; border-top: 1px solid var(--border); display: none;"></iframe>
             </div>
         `;
         
-        // Marked çıktısında escapeHTML uygulandığı için placeholder'ı da kaçırılmış haliyle aratıyoruz.
-        const escapedPlaceholder = escapeHTML(placeholder);
-        if (htmlOutput.includes(escapedPlaceholder)) {
-            htmlOutput = htmlOutput.replace(escapedPlaceholder, codeContainerHTML);
-        } else {
-            htmlOutput = htmlOutput.replace(placeholder, codeContainerHTML);
-        }
+        htmlOutput = htmlOutput.replace(placeholder, codeContainerHTML);
     });
     
     return htmlOutput;
