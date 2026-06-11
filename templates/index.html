@@ -451,6 +451,7 @@ async function appendMsg(sender, text, typeEffect = true) {
         });
         scrollBottom();
     } else {
+        // Canlı yazma efekti
         msgEl.classList.add('typing');
         let i = 0;
         const speed = 10; 
@@ -458,20 +459,20 @@ async function appendMsg(sender, text, typeEffect = true) {
         return new Promise(resolve => {
             function type() {
                 if (i < text.length) {
-                    let currentText = text.substring(0, i + 1);
-                    msgEl.innerHTML = renderContent(currentText);
+                    // DEĞİŞİKLİK: Yazma anında da metni renderContent'ten geçirerek HTML olarak basıyoruz
+                    const partialText = text.substring(0, i + 1);
+                    msgEl.innerHTML = renderContent(partialText);
                     
-                    // Canlı renklendirme (Performans optimizasyonlu)
+                    // Yazma esnasında oluşan kod bloklarını anlık olarak renklendir
                     msgEl.querySelectorAll('pre code').forEach((el) => { 
-                        if(typeof hljs !== 'undefined' && !el.classList.contains('hljs')) {
-                            hljs.highlightElement(el);
-                        }
+                        if(typeof hljs !== 'undefined') hljs.highlightElement(el); 
                     });
 
                     i += 2; 
                     scrollBottom();
                     setTimeout(type, speed);
                 } else {
+                    // Yazma tamamen bittiğinde son kez temiz render yapılıyor
                     msgEl.innerHTML = renderContent(text);
                     msgEl.querySelectorAll('pre code').forEach((el) => { 
                         if(typeof hljs !== 'undefined') hljs.highlightElement(el); 
@@ -484,8 +485,6 @@ async function appendMsg(sender, text, typeEffect = true) {
             type();
         });
     }
-}
-
 async function sendMessage() {
     const text = inputEl.value.trim();
     if (!text && !pendingFileContent) return;
